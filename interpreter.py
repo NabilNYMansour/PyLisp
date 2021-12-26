@@ -77,54 +77,90 @@ def pair(exp1, exp2):
 
 
 def assoc(exp1, exp2):
-    if eq(car(car(exp2)), exp1):
-        return car(cdr(car(exp2)))
+    if null(exp2):
+        return "NIL"
+    elif eq(car(car(exp2)), exp1):
+        return cdr(car(exp2))
     else:
         return assoc(exp1, cdr(exp2))
 
 
-def sub2(exp1, exp3):
-    if null(exp1):
-        return exp3
-    elif eq(car(car(exp1)), exp3):
-        return car(cdr(car(exp1)))
+def assocReplace(exp1, val, exp2):
+    if null(exp2):
+        return "NIL"
+    elif eq(car(car(exp2)), exp1):
+        exp2.h.t = val
+        return "T"
     else:
-        return sub2(cdr(exp1), exp3)
+        return assocReplace(exp1, val, cdr(exp2))
 
 
-def sublis(exp1, exp2):
-    if atom(exp2):
-        return sub2(exp1, exp2)
+def put(x, y, a):
+    result = assoc(x, a)
+    if null(result):
+        if null(a):
+            return List([cons(x, y)])
+        else:
+            if null(cdr(a)):
+                return List([car(a), cons(x, y)])
+            else:
+                return cons(car(a), put(x, y, cdr(a)))
     else:
-        return cons(sublis(exp1, car(exp2)), sublis(exp1, cdr(exp2)))
+        assocReplace(x, y, a)
+        return a
+
+
+g = "NIL"
 
 
 def eval(e):
+    global g
     if atom(e):
-        return e
+        result = assoc(e, g)
+        if null(result):
+            return e
+        else:
+            return result
     elif atom(car(e)):
         if eq(car(e), "QUOTE"):
             return car(cdr(e))
-        elif eq(car(e), "ATOM"):
+        if eq(car(e), "ATOM"):
             return atom(eval(car(cdr(e))))
         elif eq(car(e), "EQ"):
-            return eval(car(cdr(e))) == eval(car(cdr(cdr(e))))
-        # elif eq(car(e), "COND"):
-        #     return evcon(cdr(e))
+            if eval(car(cdr(e))) == eval(car(cdr(cdr(e)))):
+                return "T"
+            else:
+                return "NIL"
         elif eq(car(e), "CAR"):
             return car(eval(car(cdr(e))))
         elif eq(car(e), "CDR"):
             return cdr(eval(car(cdr(e))))
         elif eq(car(e), "CONS"):
             return cons(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
-        # elif eq(car(e), "LIST"):
-        #     return
-        else:
-            return e
+        elif eq(car(e), "ASSOC"):
+            return assoc(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "SET"):
+            g = put(eval(List(["QUOTE", car(cdr(e))])), eval(car(cdr(cdr(e)))), g)
+            print("Debug", g)
+            return "T"
+        elif eq(car(e), "+"):
+            return int(eval(car(cdr(e)))) + int(eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "-"):
+            return int(eval(car(cdr(e)))) + int(eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "*"):
+            return int(eval(car(cdr(e)))) * int(eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "/"):
+            return int(eval(car(cdr(e)))) / int(eval(car(cdr(cdr(e)))))
+    return e
 
 
 def interprete(code):
-    l = code[1:len(code)-1].upper().split(" ")
+    l = code.upper().split(" ")
+    if len(l) == 1:
+        return eval(l[0])
+    else:
+        l[0] = l[0][1:]
+        l[-1] = l[-1][:len(l[-1])-1]
     innerFlag = False
     index = 0
     openBracket = 0
@@ -135,11 +171,10 @@ def interprete(code):
             openBracket = index
         if (element[-1] == ")" and innerFlag):
             closeBracket = index
-            l[openBracket] = interprete(
-                " ".join(l[openBracket:closeBracket+1]))
-            del l[openBracket+1:closeBracket+1]
-            break
         index += 1
+    if innerFlag:
+        l[openBracket] = interprete(" ".join(l[openBracket:closeBracket+1]))
+        del l[openBracket+1:closeBracket+1]
     return eval(List(l))
 
 

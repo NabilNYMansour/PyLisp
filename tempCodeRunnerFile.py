@@ -1,1 +1,2 @@
-self
+
+while True:
