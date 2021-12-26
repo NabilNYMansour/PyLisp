@@ -141,7 +141,7 @@ def eval(e):
             return assoc(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
         elif eq(car(e), "SET"):
             g = put(eval(List(["QUOTE", car(cdr(e))])), eval(car(cdr(cdr(e)))), g)
-            print("Debug", g)
+            # print("Debug", g)
             return "T"
         elif eq(car(e), "+"):
             return int(eval(car(cdr(e)))) + int(eval(car(cdr(cdr(e)))))
@@ -154,7 +154,7 @@ def eval(e):
     return e
 
 
-def interprete(code):
+def interpreteBlock(code):
     l = code.upper().split(" ")
     if len(l) == 1:
         return eval(l[0])
@@ -173,15 +173,56 @@ def interprete(code):
             closeBracket = index
         index += 1
     if innerFlag:
-        l[openBracket] = interprete(" ".join(l[openBracket:closeBracket+1]))
+        l[openBracket] = interpreteBlock(" ".join(l[openBracket:closeBracket+1]))
         del l[openBracket+1:closeBracket+1]
     return eval(List(l))
+
+
+def interpreteBlocks(code):
+    l = code.upper().split(" ")
+    foundBlock = 0
+    openBracket = 0
+    closeBracket = 0
+    index = 0
+    hasFound = False
+    blocks = []
+    for element in l:
+        # if (element[0] == "(" and element[-1] ==")"):
+        #     blocks.append(element)
+        if (element[0] == "("):
+            foundBlock += 1
+            if not hasFound:
+                openBracket = index
+            hasFound = True
+        elif (element[-1] == ")"):
+            for char in element:
+                if char == ")": foundBlock -= 1
+            closeBracket = index
+        elif (not hasFound):
+            blocks.append(element)
+        if foundBlock == 0 and hasFound:
+            hasFound = False
+            blocks.append(" ".join(l[openBracket:closeBracket+1]))
+        index += 1
+    for block in blocks[:len(blocks)-1]:
+        # print("Interpreter Debug", interpreteBlock(block))
+        interpreteBlock(block)
+    return interpreteBlock(blocks[-1])
 
 
 inp = ""
 while True:
     print("PyLisp> ", end="")
     inp = input()
+    # debug stuff
     if inp == "quit":
         break
-    print(interprete(inp))
+    elif inp == "pvars":
+        print(g)
+    elif len(inp) > 5 and inp[0:5] == "load ":
+        f = open(inp[5:], "r")
+        print(interpreteBlocks(f.read().replace("\n", " ").replace("\t", " ")))
+        f.close()
+    else:
+        print(interpreteBlocks(inp))
+
