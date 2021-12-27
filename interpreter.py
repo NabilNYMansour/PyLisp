@@ -110,6 +110,24 @@ def put(x, y, a):
         return a
 
 
+def remove(x, y):
+    if null(y):
+        return "NIL"
+    else:
+        if equal(x, car(y)):
+            return remove(x, cdr(y))
+        else:
+            return cons(car(y), remove(x, cdr(y)))
+
+def removeAll(x, y):
+    if null(x):
+        return y
+    else:
+        # removeAll(cdr(x), y)
+        # return remove(car(x), y)
+        return removeAll(cdr(x), remove(car(x), y))
+
+
 g = "NIL"
 
 
@@ -159,37 +177,6 @@ def eval(e):
     return e
 
 
-# def interpreteBlock(code):
-#     l = code.upper().split(" ")
-#     if len(l) == 1:
-#         return eval(l[0])
-#     else:
-#         l[0] = l[0][1:]
-#         l[-1] = l[-1][:len(l[-1])-1]
-#     innerFlag = False
-#     index = 0
-#     openBracket = 0
-#     closeBracket = 0
-#     foundBlock = 0
-#     indiciesToRemove = []
-#     for i in range(len(l)):
-#         if (l[index][0] == "("):
-#             innerFlag = True
-#             openBracket = index
-#             foundBlock += 1
-#         if (l[index][-1] == ")" and innerFlag):
-#             closeBracket = index
-#             foundBlock -= 1
-#         if innerFlag and foundBlock == 0:
-#             innerFlag = False
-#             l[openBracket] = interpreteBlock(" ".join(l[openBracket:closeBracket+1]))
-#             # del l[openBracket+1:closeBracket+1]
-#             indiciesToRemove.append(openBracket+1)
-#             indiciesToRemove.append(closeBracket)
-#         index += 1
-#     l = [l[i] for i in range(len(l)) if i not in indiciesToRemove]
-#     return eval(List(l))
-
 def interpreteBlock(code):
     l = code.upper().split(" ")
     if len(l) == 1:
@@ -211,13 +198,17 @@ def interpreteBlock(code):
             index += 1
         blocks = interpreteBlocks(l[1], False)
         l = [l[0]]
-        for block in blocks:
-            l.append(interpreteBlock(block))
-        # for i in range(1, len(code)):
-        #     l[i] = interpreteBlocks(l[i], False)
-        return eval(List(l))
-        # return [l[0], blocks]
-
+        if (l[0] == "LET"):
+            global g
+            oldG = g
+            g = append(interpreteBlock(blocks[0]), g)
+            result = eval(interpreteBlock(blocks[1]))
+            g = oldG
+            return result
+        else:
+            for block in blocks:
+                l.append(interpreteBlock(block))
+            return eval(List(l))
 
 
 def interpreteBlocks(code, toEvalBlocks):
@@ -256,8 +247,8 @@ def interpreteBlocks(code, toEvalBlocks):
         return blocks
 
 
-# print("Interpreter Debug", interpreteBlocks("x (cons a b) (cons (cons a b) (cons c d)) z", True))
-
+# print(interpreteBlocks("(let (list (cons a 2) (cons b 3)) (+ a b))", True))
+# print(interpreteBlocks("(lambda (+ 1 2))", True))
 
 inp = ""
 while True:
