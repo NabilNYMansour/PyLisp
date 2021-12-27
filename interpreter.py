@@ -140,7 +140,8 @@ def eval(e):
         elif eq(car(e), "ASSOC"):
             return assoc(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
         elif eq(car(e), "SET"):
-            g = put(eval(List(["QUOTE", car(cdr(e))])), eval(car(cdr(cdr(e)))), g)
+            g = put(eval(List(["QUOTE", car(cdr(e))])),
+                    eval(car(cdr(cdr(e)))), g)
             # print("Debug", g)
             return "T"
         elif eq(car(e), "+"):
@@ -151,34 +152,75 @@ def eval(e):
             return int(eval(car(cdr(e)))) * int(eval(car(cdr(cdr(e)))))
         elif eq(car(e), "/"):
             return int(eval(car(cdr(e)))) / int(eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "LIST"):
+            return cdr(e)
+        elif eq(car(e), "APPEND"):
+            return append(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
     return e
 
+
+# def interpreteBlock(code):
+#     l = code.upper().split(" ")
+#     if len(l) == 1:
+#         return eval(l[0])
+#     else:
+#         l[0] = l[0][1:]
+#         l[-1] = l[-1][:len(l[-1])-1]
+#     innerFlag = False
+#     index = 0
+#     openBracket = 0
+#     closeBracket = 0
+#     foundBlock = 0
+#     indiciesToRemove = []
+#     for i in range(len(l)):
+#         if (l[index][0] == "("):
+#             innerFlag = True
+#             openBracket = index
+#             foundBlock += 1
+#         if (l[index][-1] == ")" and innerFlag):
+#             closeBracket = index
+#             foundBlock -= 1
+#         if innerFlag and foundBlock == 0:
+#             innerFlag = False
+#             l[openBracket] = interpreteBlock(" ".join(l[openBracket:closeBracket+1]))
+#             # del l[openBracket+1:closeBracket+1]
+#             indiciesToRemove.append(openBracket+1)
+#             indiciesToRemove.append(closeBracket)
+#         index += 1
+#     l = [l[i] for i in range(len(l)) if i not in indiciesToRemove]
+#     return eval(List(l))
 
 def interpreteBlock(code):
     l = code.upper().split(" ")
     if len(l) == 1:
         return eval(l[0])
     else:
-        l[0] = l[0][1:]
-        l[-1] = l[-1][:len(l[-1])-1]
-    innerFlag = False
-    index = 0
-    openBracket = 0
-    closeBracket = 0
-    for element in l:
-        if (element[0] == "(" and not innerFlag):
-            innerFlag = True
-            openBracket = index
-        if (element[-1] == ")" and innerFlag):
-            closeBracket = index
-        index += 1
-    if innerFlag:
-        l[openBracket] = interpreteBlock(" ".join(l[openBracket:closeBracket+1]))
-        del l[openBracket+1:closeBracket+1]
-    return eval(List(l))
+        l = []
+        funcall = ""
+        foundFuncall = False
+        index = 0
+        for char in code[1:len(code)-1]:
+            if (char == " "):
+                foundFuncall = True
+            if not foundFuncall:
+                funcall += char
+            else:
+                l.append(code[1:index+1])
+                l.append(code[index+2:len(code)-1])
+                break
+            index += 1
+        blocks = interpreteBlocks(l[1], False)
+        l = [l[0]]
+        for block in blocks:
+            l.append(interpreteBlock(block))
+        # for i in range(1, len(code)):
+        #     l[i] = interpreteBlocks(l[i], False)
+        return eval(List(l))
+        # return [l[0], blocks]
 
 
-def interpreteBlocks(code):
+
+def interpreteBlocks(code, toEvalBlocks):
     l = code.upper().split(" ")
     foundBlock = 0
     openBracket = 0
@@ -196,7 +238,8 @@ def interpreteBlocks(code):
             hasFound = True
         elif (element[-1] == ")"):
             for char in element:
-                if char == ")": foundBlock -= 1
+                if char == ")":
+                    foundBlock -= 1
             closeBracket = index
         elif (not hasFound):
             blocks.append(element)
@@ -204,10 +247,16 @@ def interpreteBlocks(code):
             hasFound = False
             blocks.append(" ".join(l[openBracket:closeBracket+1]))
         index += 1
-    for block in blocks[:len(blocks)-1]:
-        # print("Interpreter Debug", interpreteBlock(block))
-        interpreteBlock(block)
-    return interpreteBlock(blocks[-1])
+    if toEvalBlocks:
+        for block in blocks[:len(blocks)-1]:
+            # print("Interpreter Debug", interpreteBlock(block))
+            interpreteBlock(block)
+        return interpreteBlock(blocks[-1])
+    else:
+        return blocks
+
+
+# print("Interpreter Debug", interpreteBlocks("x (cons a b) (cons (cons a b) (cons c d)) z", True))
 
 
 inp = ""
@@ -221,8 +270,7 @@ while True:
         print(g)
     elif len(inp) > 5 and inp[0:5] == "load ":
         f = open(inp[5:], "r")
-        print(interpreteBlocks(f.read().replace("\n", " ").replace("\t", " ")))
+        print(interpreteBlocks(f.read().replace("\n", " ").replace("\t", " "), True))
         f.close()
     else:
-        print(interpreteBlocks(inp))
-
+        print(interpreteBlocks(inp, True))
