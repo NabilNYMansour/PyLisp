@@ -1,2 +1,4 @@
-(set a 10) (set b 10) (defun plus (list a b) (+ a b)) (defun minus (list a b) (- a b)) (plus 2 3)
-(cons (plus 2 3) (minus 2 3))
+(defun printall (list a) (if (eq (cdr a) nil) (print (car a)) (progn (print (car a)) (printall (cdr a)))))
+(printall (list 1 2 3 4))
+(print ------------------------)
+(printall (list (cons 1 2) (cons 3 4) (cons 4 5)))
