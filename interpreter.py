@@ -110,20 +110,11 @@ def put(x, y, a):
         return a
 
 
-def remove(x, y):
-    if null(y):
-        return "NIL"
+def hasItem(x, y):
+    if atom(y):
+        return False
     else:
-        if equal(x, car(y)):
-            return remove(x, cdr(y))
-        else:
-            return cons(car(y), remove(x, cdr(y)))
-
-def removeAll(x, y):
-    if null(x):
-        return y
-    else:
-        return removeAll(cdr(x), remove(car(x), y))
+        return x == car(car(y)) or hasItem(x, cdr(y))
 
 
 g = "NIL"
@@ -135,7 +126,7 @@ def eval(e):
     global gf
     if atom(e):
         result = assoc(e, g)
-        if null(result):
+        if null(result) and not hasItem(e, g):
             return e
         else:
             return result
