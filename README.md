@@ -1,6 +1,6 @@
 
 # PyLisp
-A Lisp interpreter written in Python loosly following John McCarthy's Recursive Functions of Symbolic Expressions and Their Computation by Machine and common Lisp implementation.
+A Lisp interpreter written in Python loosely following John McCarthy's Recursive Functions of Symbolic Expressions and Their Computation by Machine and Common Lisp implementation.
 ## Functions Implemented:
 
  - **CAR**: Get the head of a construct 
