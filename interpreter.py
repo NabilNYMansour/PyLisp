@@ -65,15 +65,15 @@ def append(exp1, exp2):
         return cons(car(exp1), append(cdr(exp1), exp2))
 
 
-def among(exp1, exp2):
-    return not null(exp2)
+def among(x, y):
+    return not null(y) and (equal(x, car(y)) or among(x, cdr(y)))
 
 
 def pair(exp1, exp2):
     if (null(exp1) and null(exp2)):
         return "NIL"
     elif (not atom(exp1) and not atom(exp2)):
-        return cons(List([car(exp1), car(exp2)]), pair(cdr(exp1), cdr(exp2)))
+        return cons(cons(car(exp1), car(exp2)), pair(cdr(exp1), cdr(exp2)))
 
 
 def assoc(exp1, exp2):
@@ -90,7 +90,7 @@ def assocReplace(exp1, val, exp2):
         return "NIL"
     elif eq(car(car(exp2)), exp1):
         exp2.h.t = val
-        return "T"
+        return exp2
     else:
         return assocReplace(exp1, val, cdr(exp2))
 
@@ -123,16 +123,16 @@ def removeAll(x, y):
     if null(x):
         return y
     else:
-        # removeAll(cdr(x), y)
-        # return remove(car(x), y)
         return removeAll(cdr(x), remove(car(x), y))
 
 
 g = "NIL"
+gf = "NIL"
 
 
 def eval(e):
     global g
+    global gf
     if atom(e):
         result = assoc(e, g)
         if null(result):
@@ -145,7 +145,7 @@ def eval(e):
         if eq(car(e), "ATOM"):
             return atom(eval(car(cdr(e))))
         elif eq(car(e), "EQ"):
-            if eval(car(cdr(e))) == eval(car(cdr(cdr(e)))):
+            if str(eval(car(cdr(e)))) == str(eval(car(cdr(cdr(e))))):
                 return "T"
             else:
                 return "NIL"
@@ -157,23 +157,37 @@ def eval(e):
             return cons(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
         elif eq(car(e), "ASSOC"):
             return assoc(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
-        elif eq(car(e), "SET"):
-            g = put(eval(List(["QUOTE", car(cdr(e))])),
-                    eval(car(cdr(cdr(e)))), g)
-            # print("Debug", g)
-            return "T"
+        # elif eq(car(e), "SET"):
+        #     g = put(eval(List(["QUOTE", car(cdr(e))])),
+        #             eval(car(cdr(cdr(e)))), g)
+        #     return "T"
         elif eq(car(e), "+"):
-            return int(eval(car(cdr(e)))) + int(eval(car(cdr(cdr(e)))))
+            return float(eval(car(cdr(e)))) + float(eval(car(cdr(cdr(e)))))
         elif eq(car(e), "-"):
-            return int(eval(car(cdr(e)))) + int(eval(car(cdr(cdr(e)))))
+            return float(eval(car(cdr(e)))) - float(eval(car(cdr(cdr(e)))))
         elif eq(car(e), "*"):
-            return int(eval(car(cdr(e)))) * int(eval(car(cdr(cdr(e)))))
+            return float(eval(car(cdr(e)))) * float(eval(car(cdr(cdr(e)))))
         elif eq(car(e), "/"):
-            return int(eval(car(cdr(e)))) / int(eval(car(cdr(cdr(e)))))
+            return float(eval(car(cdr(e)))) / float(eval(car(cdr(cdr(e)))))
         elif eq(car(e), "LIST"):
             return cdr(e)
         elif eq(car(e), "APPEND"):
             return append(eval(car(cdr(e))), eval(car(cdr(cdr(e)))))
+        elif eq(car(e), "PRINT"):
+            print(car(cdr(e)))
+            return "T"
+        # elif eq(car(e), "IF"):
+        #     if not null(eval(car(cdr(e)))):
+        #         return eval(car(cdr(cdr(e))))
+        #     else:
+        #         return eval(car(cdr(cdr(cdr(e)))))
+        elif not null(assoc(car(e), gf)):
+            result = assoc(car(e), gf)
+            oldG = g
+            g = append(pair(car(result), cdr(e)), g)
+            interperateResult = interpreteBlock(cdr(result))
+            g = oldG
+            return interperateResult
     return e
 
 
@@ -198,13 +212,35 @@ def interpreteBlock(code):
             index += 1
         blocks = interpreteBlocks(l[1], False)
         l = [l[0]]
-        if (l[0] == "LET"):
-            global g
+        global g
+        global gf
+        if l[0] == "LET":
             oldG = g
             g = append(interpreteBlock(blocks[0]), g)
             result = eval(interpreteBlock(blocks[1]))
             g = oldG
             return result
+        elif l[0] == "DEFUN":
+            if null(assoc(blocks[0], gf)):
+                gf = append(List([cons(blocks[0], cons(List(blocks[1][1:len(blocks[1])-1].split(" ")[1:]), blocks[2]))]), gf)
+            else:
+                gf = assocReplace(blocks[0], cons(List(blocks[1][1:len(blocks[1])-1].split(" ")[1:]), blocks[2]), gf)
+            return "T"
+        elif l[0] == "SET":
+            if null(assoc(blocks[0], g)):
+                g = append(List([cons(blocks[0], interpreteBlock(blocks[1]))]), g)
+            else:
+                g = assocReplace(blocks[0], blocks[1], g)
+            return "T"
+        elif l[0] == "IF":
+            if not null(interpreteBlock(blocks[0])):
+                return interpreteBlock(blocks[1])
+            else:
+                return interpreteBlock(blocks[2])
+        elif l[0] == "PROGN":
+            for block in blocks[:len(blocks)-1]:
+                interpreteBlock(block)
+            return interpreteBlock(blocks[-1])
         else:
             for block in blocks:
                 l.append(interpreteBlock(block))
@@ -247,9 +283,6 @@ def interpreteBlocks(code, toEvalBlocks):
         return blocks
 
 
-# print(interpreteBlocks("(let (list (cons a 2) (cons b 3)) (+ a b))", True))
-# print(interpreteBlocks("(lambda (+ 1 2))", True))
-
 inp = ""
 while True:
     print("PyLisp> ", end="")
@@ -258,10 +291,14 @@ while True:
     if inp == "quit":
         break
     elif inp == "pvars":
-        print(g)
+        print("variables:", g)
+        print("functions:", gf)
     elif len(inp) > 5 and inp[0:5] == "load ":
         f = open(inp[5:], "r")
         print(interpreteBlocks(f.read().replace("\n", " ").replace("\t", " "), True))
         f.close()
     else:
         print(interpreteBlocks(inp, True))
+
+# (defun rZ (list a) (if (eq a 0.0) (print 0) (progn (print a) (rZ (- a 1)))))
+# (defun printall (list a) (if (eq (cdr a) nil) (print (car a)) (progn (print (car a)) (printall (cdr a)))))
